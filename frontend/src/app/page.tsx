@@ -1,0 +1,2 @@
+import { PageHeader, StatePanel } from "@/components/ui";
+export default function Home() { return <><PageHeader eyebrow="CONECTA CON TU PRÓXIMO EQUIPO" title="Las grandes ideas empiezan con una conexión." description="Descubre proyectos, comparte tu talento y construye algo que importe." /><StatePanel kind="empty" title="Un espacio para construir juntos" description="El directorio de proyectos estará disponible al completar la integración de la interfaz." /></>; }

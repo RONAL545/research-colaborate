@@ -27,3 +27,22 @@ Antes del commit: ejecutar Ruff y pytest contra PostgreSQL; Conventional Commits
 | feature/private-chat | app/modules/chat, tests/chat, migración 0009_chat |
 
 Estas tres ramas parten del mismo dev validado de segunda etapa. Sus migraciones descienden de 0007_merge_events (no 0001_bootstrap). No modificar core, schemas, main.py, modelos ajenos ni pruebas ajenas. El coordinador resolverá heads, añadirá FK a solicitudes desde los otros módulos y conectará los puertos transaccionales. Solo el coordinador integra/publica. Bases PostgreSQL y venv separados; comprobar suite completa de rama desde base vacía, Ruff global con --config backend/pyproject.toml y diff --check. Entregar commit y VALIDATION.md del módulo. Registrar fallos además del resultado final. Mantener cambios exclusivamente en su worktree; nunca cambiar de worktree o tarea por errores de contexto.
+
+## Tercera etapa: interfaz web React/Next.js
+
+El frontend vive en frontend/. Base compartida del coordinador: app/layout, globals.css,
+components, lib, API proxy, configuración, dependencias, CI y e2e. Ningún agente toca
+package*.json, lib, components, globals.css, backend ni CI. Estilos propios con CSS modules.
+
+| Rama | Rutas exclusivas relativas a frontend/src/ |
+| --- | --- |
+| feature/ui-identity | features/identity; app/login, app/registro, app/verificar, app/perfil |
+| feature/ui-discovery | features/discovery; app/page.tsx, app/proyectos, app/eventos |
+| feature/ui-collaboration | features/collaboration; app/solicitudes, app/conversaciones, app/notificaciones |
+
+Leer docs/ui/flows.md y docs/ui/contracts.md. Cada agente tiene worktree propio,
+node_modules propio con npm ci y pruebas dentro de su features/ con *.test.tsx.
+Ejecutar npm test, npm run typecheck y npm run build antes de commit. Los módulos se
+prueban con mocks solo en tests; UI productiva siempre consume backend real, sin datos
+ficticios por defecto. Solo el coordinador conecta y publica dev tras pruebas de conjunto
+con PostgreSQL y navegador real. No desplegar a hosting externo en esta etapa.
