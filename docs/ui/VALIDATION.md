@@ -20,3 +20,11 @@ El coordinador pidió sustituir actualización manual de sesión por refresco au
 Desde frontend ejecutados npm test: **20 passed**, npm run build y npm run typecheck:
 aprobados. Incluye 11 pruebas de identidad y 9 pruebas compartidas. git diff --check limpio.
 Pruebas del módulo usan mocks; navegador contra FastAPI/PostgreSQL pendiente de integración.
+
+## Descubrimiento
+
+Commit recibido 5b00ed0. Revisados feed real, filtros combinados, páginas, publicación,
+autoría, postulación y formularios Admin de eventos. El coordinador pidió respetar
+el límite de 2000 caracteres de solicitud y un único h1 por pantalla; corregidos por agente.
+Ejecutados desde frontend npm test: **31 passed**, npm run build y npm run typecheck:
+aprobados. git diff --check limpio. Aún no se atribuye E2E a estas pruebas con mocks.
