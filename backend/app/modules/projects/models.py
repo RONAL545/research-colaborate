@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Index, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Index, String, Text, func
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -13,7 +13,9 @@ class Project(Base):
     __table_args__ = (Index("ix_projects_feed", "created_at", "id"),)
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    author_id: Mapped[UUID] = mapped_column(index=True)
+    author_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", name="fk_projects_author_id_users"), index=True
+    )
     university: Mapped[str] = mapped_column(String(200), index=True)
     title: Mapped[str] = mapped_column(String(200))
     description: Mapped[str] = mapped_column(Text)

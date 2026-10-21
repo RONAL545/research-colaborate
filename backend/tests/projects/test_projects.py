@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.main import create_app
+from app.modules.auth.models import User
 from app.modules.projects.models import Project
 from app.schemas.identity import Principal
 
@@ -34,6 +35,7 @@ def client():
     command.upgrade(Config("alembic.ini"), "head")
     engine = create_engine(url)
     app = create_app()
+    app.state.engine = engine
 
     def database():
         with Session(engine) as session:
@@ -42,6 +44,7 @@ def client():
     app.dependency_overrides[get_db] = database
     with Session(engine) as session:
         session.execute(delete(Project))
+        session.execute(delete(User).where(User.email.like("%@projects-test.invalid")))
         session.commit()
     try:
         with TestClient(app) as test_client:
@@ -50,12 +53,27 @@ def client():
         app.dependency_overrides.clear()
         with Session(engine) as session:
             session.execute(delete(Project))
+            session.execute(delete(User).where(User.email.like("%@projects-test.invalid")))
             session.commit()
         engine.dispose()
 
 
 def identity(app, verified=True, university="UNAJ", user_id=None):
     user = Principal(id=user_id or uuid4(), university=university, email_verified=verified)
+    with Session(app.state.engine) as session:
+        if session.get(User, user.id) is None:
+            session.add(
+                User(
+                    id=user.id,
+                    email=f"{user.id}@projects-test.invalid",
+                    password_hash="unused-test-identity",
+                    name="Test",
+                    university=university,
+                    career="Engineering",
+                    email_verified=verified,
+                )
+            )
+            session.commit()
     app.dependency_overrides[get_current_user] = lambda: user
     return user
 
