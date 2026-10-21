@@ -1,0 +1,27 @@
+name: Backend
+on: [push, pull_request]
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: mvp
+          POSTGRES_PASSWORD: mvp
+          POSTGRES_DB: mvp_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U mvp -d mvp_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://mvp:mvp@localhost:5432/mvp_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r backend/requirements.lock
+      - run: ruff check --config backend/pyproject.toml backend
+      - run: pytest
+        working-directory: backend

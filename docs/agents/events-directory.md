@@ -1,0 +1,2 @@
+# Agente eventos — feature/events-directory
+Implementa directorio público paginado, detalle, creación y reemplazo administrativo según contratos. Usa app/modules/events, tests/events y 0004_events desde 0001_bootstrap. Usa require_admin compartido; PostgreSQL y fechas con zona horaria. Prueba consulta, paginación, URL inválida, fecha inválida, anónimo/no Admin/Admin sin verificar rechazados y Admin válido. Usa overrides locales para identidades en pruebas. No modificar schemas ni main.py. Entrega commit y evidencia; no integres en dev.
