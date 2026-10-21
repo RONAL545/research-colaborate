@@ -1,16 +1,227 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Bell, CalendarDays, Compass, LogOut, Menu, MessageCircle, Moon, Network, Plus, Sun, UserRound, UsersRound, X } from "lucide-react";
+import {
+  Bell,
+  CalendarDays,
+  Compass,
+  LogOut,
+  Menu,
+  MessageCircle,
+  Moon,
+  Network,
+  Plus,
+  Sun,
+  UserRound,
+  UsersRound,
+  X,
+} from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { SessionProvider, useSession } from "@/lib/session";
 import { Button } from "./ui";
-const links = [{ href: "/", label: "Explorar proyectos", icon: Compass }, { href: "/eventos", label: "Eventos y convocatorias", icon: CalendarDays }, { href: "/solicitudes", label: "Mis solicitudes", icon: UsersRound }, { href: "/conversaciones", label: "Conversaciones", icon: MessageCircle }, { href: "/notificaciones", label: "Notificaciones", icon: Bell }];
+const links = [
+  { href: "/", label: "Explorar proyectos", icon: Compass },
+  { href: "/eventos", label: "Eventos y convocatorias", icon: CalendarDays },
+  { href: "/solicitudes", label: "Mis solicitudes", icon: UsersRound },
+  { href: "/conversaciones", label: "Conversaciones", icon: MessageCircle },
+  { href: "/notificaciones", label: "Notificaciones", icon: Bell },
+];
 function Shell({ children }: { children: ReactNode }) {
-  const pathname = usePathname(); const router = useRouter(); const { user, logout, error, refresh } = useSession();
-  const [open, setOpen] = useState(false); const [dark, setDark] = useState(false); const [logoutError, setLogoutError] = useState("");
-  useEffect(() => { const saved = localStorage.getItem("nexo-theme"); const value = saved === "dark" || (!saved && matchMedia("(prefers-color-scheme: dark)").matches); setDark(value); document.documentElement.dataset.theme = value ? "dark" : "light"; }, []);
-  function toggleTheme() { const next = !dark; setDark(next); localStorage.setItem("nexo-theme", next ? "dark" : "light"); document.documentElement.dataset.theme = next ? "dark" : "light"; }
-  return <div className="app-shell"><a className="skip-link" href="#contenido">Saltar al contenido</a><header className="mobile-bar"><Link href="/" className="brand"><Network size={25} />nexo<span>académico</span></Link><Button variant="ghost" aria-label={open ? "Cerrar navegación" : "Abrir navegación"} aria-expanded={open} onClick={() => setOpen(!open)}>{open ? <X /> : <Menu />}</Button></header>{open && <button className="sidebar-scrim" aria-label="Cerrar navegación" onClick={() => setOpen(false)} />}<aside className={`sidebar ${open ? "sidebar-open" : ""}`}><Link href="/" className="brand" onClick={() => setOpen(false)}><span className="brand-mark"><Network size={25} /></span><span>nexo<small>ACADÉMICO</small></span></Link><p className="sidebar-label">TU PRÓXIMA GRAN IDEA</p><nav aria-label="Principal">{links.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className={`nav-link ${pathname === href || (href !== "/" && pathname.startsWith(href)) ? "active" : ""}`} aria-current={pathname === href ? "page" : undefined} onClick={() => setOpen(false)}><Icon size={19} strokeWidth={1.7} />{label}</Link>)}</nav><div className="sidebar-callout"><span className="mini-orbit" aria-hidden="true">✳</span><h3>Las ideas crecen<br />en equipo.</h3><p>Comparte lo que imaginas.<br />Encuentra con quién crearlo.</p><Link href={user ? "/proyectos/nuevo" : "/registro"} className="text-link" onClick={() => setOpen(false)}>Da el primer paso <Plus size={15} /></Link></div><div className="sidebar-bottom"><button className="theme-toggle" onClick={toggleTheme}>{dark ? <Sun size={18} /> : <Moon size={18} />}{dark ? "Modo claro" : "Modo oscuro"}</button>{user ? <><Link href="/perfil" className="profile-link" onClick={() => setOpen(false)}><span className="avatar">{user.name.charAt(0).toUpperCase()}</span><span><strong>{user.name}</strong><small>{user.university}</small></span><UserRound size={17} /></Link><button className="logout" onClick={async () => { try { await logout(); router.push("/"); setOpen(false); } catch { setLogoutError("No pudimos cerrar sesión."); } }}><LogOut size={16} />Cerrar sesión</button>{logoutError && <p role="alert" className="form-error">{logoutError}</p>}</> : <Link href="/login" className="button button-secondary" onClick={() => setOpen(false)}>Iniciar sesión</Link>}<p className="sidebar-footer">Conecta. Investiga. Construye.</p></div></aside><div className="workspace"><div className="workspace-top"><span className="workspace-context">Una comunidad para hacer que las ideas sucedan.</span><div>{user ? <Link href="/proyectos/nuevo" className="button button-primary"><Plus size={17} />Publicar idea</Link> : <><Link href="/login" className="top-login">Iniciar sesión</Link><Link href="/registro" className="button button-primary">Unirme a Nexo <Plus size={16} /></Link></>}</div></div><main id="contenido" tabIndex={-1}>{error && <div className="notice notice-error" role="alert">{error} <button onClick={() => void refresh()}>Reintentar</button></div>}{user && !user.email_verified && <div className="notice">Tu correo aún no está verificado. <Link href="/verificar">Ver opciones de verificación</Link></div>}{children}</main><footer className="workspace-footer"><span>Nexo Académico</span><span>El conocimiento se construye entre todos.</span></footer></div></div>;
+  const pathname = usePathname();
+  const router = useRouter();
+  const { user, logout, error, refresh } = useSession();
+  const [open, setOpen] = useState(false);
+  const [dark, setDark] = useState(false);
+  const [logoutError, setLogoutError] = useState("");
+  useEffect(() => {
+    const saved = localStorage.getItem("nexo-theme");
+    const value =
+      saved === "dark" ||
+      (!saved && matchMedia("(prefers-color-scheme: dark)").matches);
+    setDark(value);
+    document.documentElement.dataset.theme = value ? "dark" : "light";
+  }, []);
+  function toggleTheme() {
+    const next = !dark;
+    setDark(next);
+    localStorage.setItem("nexo-theme", next ? "dark" : "light");
+    document.documentElement.dataset.theme = next ? "dark" : "light";
+  }
+  return (
+    <div className="app-shell">
+      <a className="skip-link" href="#contenido">
+        Saltar al contenido
+      </a>
+      <header className="mobile-bar">
+        <Link href="/" className="brand">
+          <Network size={25} />
+          nexo<span>académico</span>
+        </Link>
+        <Button
+          variant="ghost"
+          aria-label={open ? "Cerrar navegación" : "Abrir navegación"}
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+        >
+          {open ? <X /> : <Menu />}
+        </Button>
+      </header>
+      {open && (
+        <button
+          className="sidebar-scrim"
+          aria-label="Cerrar navegación"
+          onClick={() => setOpen(false)}
+        />
+      )}
+      <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
+        <Link href="/" className="brand" onClick={() => setOpen(false)}>
+          <span className="brand-mark">
+            <Network size={25} />
+          </span>
+          <span>
+            nexo<small>ACADÉMICO</small>
+          </span>
+        </Link>
+        <p className="sidebar-label">TU PRÓXIMA GRAN IDEA</p>
+        <nav aria-label="Principal">
+          {links.map(({ href, label, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              className={`nav-link ${pathname === href || (href !== "/" && pathname.startsWith(href)) ? "active" : ""}`}
+              aria-current={pathname === href ? "page" : undefined}
+              onClick={() => setOpen(false)}
+            >
+              <Icon size={19} strokeWidth={1.7} />
+              {label}
+            </Link>
+          ))}
+        </nav>
+        <div className="sidebar-callout">
+          <span className="mini-orbit" aria-hidden="true">
+            ✳
+          </span>
+          <h3>
+            Las ideas crecen
+            <br />
+            en equipo.
+          </h3>
+          <p>
+            Comparte lo que imaginas.
+            <br />
+            Encuentra con quién crearlo.
+          </p>
+          <Link
+            href={user ? "/proyectos/nuevo" : "/registro"}
+            className="text-link"
+            onClick={() => setOpen(false)}
+          >
+            Da el primer paso <Plus size={15} />
+          </Link>
+        </div>
+        <div className="sidebar-bottom">
+          <button className="theme-toggle" onClick={toggleTheme}>
+            {dark ? <Sun size={18} /> : <Moon size={18} />}
+            {dark ? "Modo claro" : "Modo oscuro"}
+          </button>
+          {user ? (
+            <>
+              <Link
+                href="/perfil"
+                className="profile-link"
+                onClick={() => setOpen(false)}
+              >
+                <span className="avatar">
+                  {user.name.charAt(0).toUpperCase()}
+                </span>
+                <span>
+                  <strong>{user.name}</strong>
+                  <small>{user.university}</small>
+                </span>
+                <UserRound size={17} />
+              </Link>
+              <button
+                className="logout"
+                onClick={async () => {
+                  try {
+                    await logout();
+                    router.push("/");
+                    setOpen(false);
+                  } catch {
+                    setLogoutError("No pudimos cerrar sesión.");
+                  }
+                }}
+              >
+                <LogOut size={16} />
+                Cerrar sesión
+              </button>
+              {logoutError && (
+                <p role="alert" className="form-error">
+                  {logoutError}
+                </p>
+              )}
+            </>
+          ) : (
+            <Link
+              href="/login"
+              className="button button-secondary"
+              onClick={() => setOpen(false)}
+            >
+              Iniciar sesión
+            </Link>
+          )}
+          <p className="sidebar-footer">Conecta. Investiga. Construye.</p>
+        </div>
+      </aside>
+      <div className="workspace">
+        <div className="workspace-top">
+          <span className="workspace-context">
+            Una comunidad para hacer que las ideas sucedan.
+          </span>
+          <div>
+            {user ? (
+              <Link href="/proyectos/nuevo" className="button button-primary">
+                <Plus size={17} />
+                Publicar idea
+              </Link>
+            ) : (
+              <>
+                <Link href="/login" className="top-login">
+                  Iniciar sesión
+                </Link>
+                <Link href="/registro" className="button button-primary">
+                  Unirme a Nexo <Plus size={16} />
+                </Link>
+              </>
+            )}
+          </div>
+        </div>
+        <main id="contenido" tabIndex={-1}>
+          {error && (
+            <div className="notice notice-error" role="alert">
+              {error} <button onClick={() => void refresh()}>Reintentar</button>
+            </div>
+          )}
+          {user && !user.email_verified && (
+            <div className="notice">
+              Tu correo aún no está verificado.{" "}
+              <Link href="/verificar">Ver opciones de verificación</Link>
+            </div>
+          )}
+          {children}
+        </main>
+        <footer className="workspace-footer">
+          <span>Nexo Académico</span>
+          <span>El conocimiento se construye entre todos.</span>
+        </footer>
+      </div>
+    </div>
+  );
 }
-export function AppShell({ children }: { children: ReactNode }) { return <SessionProvider><Shell>{children}</Shell></SessionProvider>; }
+export function AppShell({ children }: { children: ReactNode }) {
+  return (
+    <SessionProvider>
+      <Shell>{children}</Shell>
+    </SessionProvider>
+  );
+}

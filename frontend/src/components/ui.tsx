@@ -1,8 +1,127 @@
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { ArrowLeft, ArrowRight, CircleAlert, LoaderCircle, Sprout } from "lucide-react";
-export function Button({ variant = "primary", className = "", ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" | "ghost" | "danger" }) { return <button className={`button button-${variant} ${className}`} {...props} />; }
-export function PageHeader({ eyebrow, title, description, actions }: { eyebrow?: string; title: string; description?: string; actions?: ReactNode }) { return <header className="page-header"><div>{eyebrow && <p className="eyebrow">{eyebrow}</p>}<h1>{title}</h1>{description && <p className="page-description">{description}</p>}</div>{actions && <div className="header-actions">{actions}</div>}</header>; }
-export function Badge({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "green" | "amber" | "red" }) { return <span className={`badge badge-${tone}`}>{children}</span>; }
-export function StatePanel({ kind, title, description, action }: { kind: "loading" | "empty" | "error"; title: string; description?: string; action?: ReactNode }) { const Icon = kind === "loading" ? LoaderCircle : kind === "error" ? CircleAlert : Sprout; return <div className={`state-panel state-${kind}`} role={kind === "error" ? "alert" : "status"}><Icon aria-hidden="true" size={32} className={kind === "loading" ? "spin" : ""} /><h2>{title}</h2>{description && <p>{description}</p>}{action}</div>; }
-export function Pagination({ page, pageSize, total, onChange }: { page: number; pageSize: number; total: number; onChange: (page: number) => void }) { const pages = Math.max(1, Math.ceil(total / pageSize)); return <nav className="pagination" aria-label="Paginación"><span>{total} {total === 1 ? "resultado" : "resultados"} · Página {page} de {pages}</span><div><Button variant="secondary" disabled={page <= 1} onClick={() => onChange(page - 1)} aria-label="Página anterior"><ArrowLeft size={16} />Anterior</Button><Button variant="secondary" disabled={page >= pages} onClick={() => onChange(page + 1)} aria-label="Página siguiente">Siguiente<ArrowRight size={16} /></Button></div></nav>; }
-export function FieldError({ message }: { message?: string | null }) { return message ? <p className="form-error" role="alert">{message}</p> : null; }
+import {
+  ArrowLeft,
+  ArrowRight,
+  CircleAlert,
+  LoaderCircle,
+  Sprout,
+} from "lucide-react";
+export function Button({
+  variant = "primary",
+  className = "",
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement> & {
+  variant?: "primary" | "secondary" | "ghost" | "danger";
+}) {
+  return (
+    <button className={`button button-${variant} ${className}`} {...props} />
+  );
+}
+export function PageHeader({
+  eyebrow,
+  title,
+  description,
+  actions,
+}: {
+  eyebrow?: string;
+  title: string;
+  description?: string;
+  actions?: ReactNode;
+}) {
+  return (
+    <header className="page-header">
+      <div>
+        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+        <h1>{title}</h1>
+        {description && <p className="page-description">{description}</p>}
+      </div>
+      {actions && <div className="header-actions">{actions}</div>}
+    </header>
+  );
+}
+export function Badge({
+  children,
+  tone = "neutral",
+}: {
+  children: ReactNode;
+  tone?: "neutral" | "green" | "amber" | "red";
+}) {
+  return <span className={`badge badge-${tone}`}>{children}</span>;
+}
+export function StatePanel({
+  kind,
+  title,
+  description,
+  action,
+}: {
+  kind: "loading" | "empty" | "error";
+  title: string;
+  description?: string;
+  action?: ReactNode;
+}) {
+  const Icon =
+    kind === "loading" ? LoaderCircle : kind === "error" ? CircleAlert : Sprout;
+  return (
+    <div
+      className={`state-panel state-${kind}`}
+      role={kind === "error" ? "alert" : "status"}
+    >
+      <Icon
+        aria-hidden="true"
+        size={32}
+        className={kind === "loading" ? "spin" : ""}
+      />
+      <h2>{title}</h2>
+      {description && <p>{description}</p>}
+      {action}
+    </div>
+  );
+}
+export function Pagination({
+  page,
+  pageSize,
+  total,
+  onChange,
+}: {
+  page: number;
+  pageSize: number;
+  total: number;
+  onChange: (page: number) => void;
+}) {
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  return (
+    <nav className="pagination" aria-label="Paginación">
+      <span>
+        {total} {total === 1 ? "resultado" : "resultados"} · Página {page} de{" "}
+        {pages}
+      </span>
+      <div>
+        <Button
+          variant="secondary"
+          disabled={page <= 1}
+          onClick={() => onChange(page - 1)}
+          aria-label="Página anterior"
+        >
+          <ArrowLeft size={16} />
+          Anterior
+        </Button>
+        <Button
+          variant="secondary"
+          disabled={page >= pages}
+          onClick={() => onChange(page + 1)}
+          aria-label="Página siguiente"
+        >
+          Siguiente
+          <ArrowRight size={16} />
+        </Button>
+      </div>
+    </nav>
+  );
+}
+export function FieldError({ message }: { message?: string | null }) {
+  return message ? (
+    <p className="form-error" role="alert">
+      {message}
+    </p>
+  ) : null;
+}
