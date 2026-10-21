@@ -1,11 +1,19 @@
 from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.orm import Session
 
+from app.core.config import Settings, get_settings
+from app.core.database import get_db
+from app.modules.auth.security import authenticate
 from app.schemas.identity import Principal, Role
 
 
-def get_current_user() -> Principal:
-    # Auth replaces this adapter; all modules must depend on this stable function.
-    raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Authentication required")
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(HTTPBearer(auto_error=False)),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+) -> Principal:
+    return authenticate(credentials.credentials if credentials else None, db, settings)
 
 
 def require_verified(user: Principal = Depends(get_current_user)) -> Principal:
