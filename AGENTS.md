@@ -16,3 +16,14 @@ Todas las rutas anteriores son relativas a backend/. No modificar contratos comp
 Migraciones: cada módulo parte de 0001_bootstrap en su rama, crea tablas solo de su módulo. Proyectos guarda author_id UUID con índice; el coordinador añadirá FK a users al integrar. El coordinador resuelve cabezas Alembic con revisión merge y valida upgrade/downgrade/check. No renumerar migraciones ajenas.
 
 Antes del commit: ejecutar Ruff y pytest contra PostgreSQL; Conventional Commits. Entregar hash, rutas, comandos ejecutados y pendientes al coordinador. No compartir venv mutable entre agentes.
+
+## Segunda etapa: agentes paralelos de formación de equipos
+
+| Rama | Responsabilidad exclusiva (rutas relativas a backend/) |
+| --- | --- |
+| feature/collaboration-contracts | Coordinador: contratos/core, stubs, registro de routers, documentación |
+| feature/applications | app/modules/applications, tests/applications, migración 0010_applications |
+| feature/notifications | app/modules/notifications, tests/notifications, migración 0008_notifications |
+| feature/private-chat | app/modules/chat, tests/chat, migración 0009_chat |
+
+Estas tres ramas parten del mismo dev validado de segunda etapa. Sus migraciones descienden de 0007_merge_events (no 0001_bootstrap). No modificar core, schemas, main.py, modelos ajenos ni pruebas ajenas. El coordinador resolverá heads, añadirá FK a solicitudes desde los otros módulos y conectará los puertos transaccionales. Solo el coordinador integra/publica. Bases PostgreSQL y venv separados; comprobar suite completa de rama desde base vacía, Ruff global con --config backend/pyproject.toml y diff --check. Entregar commit y VALIDATION.md del módulo. Registrar fallos además del resultado final. Mantener cambios exclusivamente en su worktree; nunca cambiar de worktree o tarea por errores de contexto.
