@@ -71,3 +71,14 @@ Coordinador, desde backend:
 Resultado: **56 passed**, PostgreSQL nuevo desechable. Incluye concurrencia real del
 servicio y ciclo Alembic. Ruff global con configuración explícita y diff check aprobados.
 Aún sin conexión a solicitudes hasta recibir el módulo. Advertencias previas persisten.
+
+## Segunda etapa: conversaciones
+
+Chat recibido en 59c7594. Revisados privacidad (incluido Admin ajeno), remitente
+asignado por servidor, orden/paginación, servicio idempotente y savepoint concurrente.
+Integración con notificaciones en revisión merge 0011, sin renumerar revisiones.
+Coordinador desde backend:
+`DATABASE_URL=postgresql+psycopg://mvp:mvp@localhost:55432/coordinator_chat_test ../.venv/bin/pytest -q`
+Resultado: **63 passed**, DB PostgreSQL nueva vacía, incluye ciclo Alembic completo.
+Ruff global con configuración explícita y diff check aprobados. Los dos avisos previos
+persisten. Chat todavía no abre conversaciones desde solicitudes hasta conectar puertos.
