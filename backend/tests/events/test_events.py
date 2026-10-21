@@ -2,8 +2,11 @@ import os
 from uuid import uuid4
 
 import pytest
+from alembic import command
+from alembic.config import Config
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, delete
+from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -13,10 +16,19 @@ from app.modules.events.models import Event
 from app.schemas.identity import Principal, Role
 
 
-@pytest.fixture
-def client():
+@pytest.fixture(scope="session")
+def migrated_database():
     url = os.environ["DATABASE_URL"]
-    assert "test" in url.rsplit("/", 1)[-1]
+    parsed = make_url(url)
+    assert parsed.get_backend_name() == "postgresql", "Use disposable PostgreSQL"
+    assert "test" in (parsed.database or ""), "Use a test database"
+    command.upgrade(Config("alembic.ini"), "head")
+    return url
+
+
+@pytest.fixture
+def client(migrated_database):
+    url = migrated_database
     engine = create_engine(url)
     with Session(engine) as db:
         db.execute(delete(Event))

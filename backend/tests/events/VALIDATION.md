@@ -29,3 +29,12 @@ Limitaciones: identidad se simula únicamente mediante overrides en aplicación
 local de pruebas; la integración real JWT/auth y las migraciones con múltiples
 heads deben comprobarse por el coordinador. No se declara aprobado ese conjunto.
 La suite emite un aviso de obsolescencia Starlette/httpx sin fallos.
+
+Revisión del coordinador: preparación automática desde base vacía añadida en
+fixture de sesión, con validación del dialecto PostgreSQL y nombre de base test.
+Se ejecutó también:
+
+- `DATABASE_URL=postgresql+psycopg://postgres:test@127.0.0.1:55435/events_test .venv-events/bin/alembic downgrade base` seguido de pytest: 21 passed.
+- `docker --context default exec research-events-test createdb -U postgres events_fresh_test`: base nueva creada, exit 0.
+- `DATABASE_URL=postgresql+psycopg://postgres:test@127.0.0.1:55435/events_fresh_test .venv-events/bin/pytest -q`: 21 passed sin upgrade manual previo.
+- Ruff acotado repetido tras la corrección: All checks passed.
