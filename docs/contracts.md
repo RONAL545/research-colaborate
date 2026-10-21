@@ -6,9 +6,9 @@ Fuente de DTOs: backend/app/schemas. UUID en JSON como string; fechas ISO 8601 c
 - Projects: POST /api/v1/projects (ProjectCreate → ProjectRead, 201); GET /projects y GET /projects/{id}; PUT /projects/{id} reemplaza campos editables con ProjectCreate. Lectura pública, escritura solo verificados, edición solo autor. Feed Page[ProjectRead] con q, university, category, status, page>=1 y page_size 1..100; orden estable por created_at e id. Universidad copiada del Principal; autor nunca viene del cliente.
 - Events: GET /api/v1/events y /events/{id}; POST /events (EventCreate → EventRead, 201); PUT /events/{id} (EventCreate → EventRead). Lectura pública paginada Page[EventRead], escritura solo Admin verificado.
 
-get_current_user devuelve Principal; require_verified y require_admin son las únicas entradas de autorización compartidas. El bootstrap rechaza identidad hasta implementar auth. Las pruebas de módulos pueden sobrescribir get_current_user en su aplicación local y deben limpiar overrides.
+get_current_user devuelve Principal; require_verified y require_admin son las únicas entradas de autorización compartidas. Auth valida JWT y consulta identidad y permisos vigentes en PostgreSQL. Las pruebas de módulos pueden sobrescribir get_current_user en su aplicación local y deben limpiar overrides.
 
-Solicitudes, notificaciones, chat e interfaz quedan para la siguiente etapa del MVP; esta entrega inicial no declara completo el recorrido del MVP.
+Solicitudes, notificaciones y chat completan el recorrido del backend en la segunda etapa. El MVP con interfaz y envío real de correo todavía está pendiente.
 
 ## Formación de equipos: contratos compartidos
 
@@ -20,12 +20,12 @@ Solicitudes, notificaciones, chat e interfaz quedan para la siguiente etapa del 
 
 Todas las listas usan page>=1, page_size 1..100 y orden created_at DESC, id DESC salvo mensajes. Estados HTTP y DTOs anteriores siguen vigentes. Ningún endpoint acepta IDs de identidad o roles del cliente.
 
-Puertos transaccionales de app/core/collaboration.py: ApplicationContext(id, project_id, author_id, applicant_id), CollaborationActions.submitted(db, context) y decided(db, context, status). El agente solicitudes los inyecta con Depends(get_collaboration_actions). Se ejecutan después de flush, dentro de la misma transacción que la solicitud y antes del commit. El coordinador conecta implementaciones; el adaptador provisional falla con 503 para evitar solicitudes sin efectos asociados. Las pruebas de solicitudes pueden inyectar un fake; las de integración no.
+Puertos transaccionales de app/core/collaboration.py: ApplicationContext(id, project_id, author_id, applicant_id), CollaborationActions.submitted(db, context) y decided(db, context, status). El agente solicitudes los inyecta con Depends(get_collaboration_actions). Se ejecutan después de flush, dentro de la misma transacción que la solicitud y antes del commit. El coordinador conectó TransactionalCollaborationActions en app/integrations/collaboration.py: comparte sesión con ambos servicios y no hace commit. UnconfiguredActions se conserva como adaptador provisional que falla con 503 para evitar solicitudes sin efectos asociados. Las pruebas de solicitudes pueden inyectar un fake; las de integración no.
 
 API interna acordada, sin commit/rollback de la sesión recibida:
 - notifications/service.py: create_notification(db: Session, *, recipient_id: UUID, application_id: UUID, kind: NotificationKind) → Notification. Idempotente por (recipient_id, application_id, kind); usa savepoint para no abortar transacción externa ante duplicado.
 - chat/service.py: open_conversation(db: Session, *, application_id: UUID, project_id: UUID, author_id: UUID, applicant_id: UUID) → Conversation. Idempotente por application_id, no cambia participantes existentes y rechaza contexto distinto. Usa savepoint ante duplicados.
 
-submitted abre conversación y notifica al autor con application_received; decided notifica al postulante con application_accepted/rejected. FK application_id de notificaciones y conversaciones la añade coordinador tras integrar solicitudes. Cada módulo puede trabajar con UUID y datos ficticios solo en pruebas; no usa modelos incompletos de otro agente.
+submitted abre conversación y notifica al autor con application_received; decided notifica al postulante con application_accepted/rejected. La revisión 0013 añade FK application_id de notificaciones y conversaciones tras integrar solicitudes. Cada módulo puede trabajar con UUID y datos ficticios solo en pruebas; no usa modelos incompletos de otro agente.
 
 Historias: como estudiante quiero postularme y recibir una decisión; como creador quiero revisar y decidir solicitudes; como participante quiero recibir avisos privados y conversar. Criterios Gherkin en .codex/MVP.md, se validarán también con el recorrido completo usando JWT real.

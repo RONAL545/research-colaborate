@@ -12,7 +12,7 @@ from sqlalchemy import create_engine, delete, func, select, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.collaboration import get_collaboration_actions
+from app.core.collaboration import UnconfiguredActions, get_collaboration_actions
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.main import create_app
@@ -64,12 +64,26 @@ def env():
     people = [Principal(id=uuid4(), university="UNAJ", email_verified=True) for _ in range(3)]
     with Session(engine) as db:
         for person in people:
-            db.add(User(id=person.id, email=f"{person.id}@applications-test.invalid",
-                        password_hash="unused", name="Test", university="UNAJ", career="QA"))
+            db.add(
+                User(
+                    id=person.id,
+                    email=f"{person.id}@applications-test.invalid",
+                    password_hash="unused",
+                    name="Test",
+                    university="UNAJ",
+                    career="QA",
+                )
+            )
         db.flush()
-        project = Project(author_id=people[0].id, university="UNAJ", title="Test",
-                          description="Test", category="QA", required_roles=["QA"],
-                          status="recruiting")
+        project = Project(
+            author_id=people[0].id,
+            university="UNAJ",
+            title="Test",
+            description="Test",
+            category="QA",
+            required_roles=["QA"],
+            status="recruiting",
+        )
         db.add(project)
         db.commit()
         project_id = project.id
@@ -124,7 +138,9 @@ def test_complete_flow_privacy_and_reapplication(env):
     assert second.status_code == 201
     assert second.json()["id"] != item["id"]
     as_user(env, 0)
-    assert http.patch(f"{URL}/{second.json()['id']}", json={"status": "accepted"}).status_code == 200
+    assert (
+        http.patch(f"{URL}/{second.json()['id']}", json={"status": "accepted"}).status_code == 200
+    )
     as_user(env)
     assert submit(env).status_code == 409
 
@@ -142,8 +158,12 @@ def test_auth_validation_and_missing(env):
     assert http.post(f"{URL}/projects/{uuid4()}", json={"message": "Hi"}).status_code == 404
     assert http.get(f"{URL}/{uuid4()}").status_code == 404
     assert http.patch(f"{URL}/{uuid4()}", json={"status": "accepted"}).status_code == 404
-    for payload in ({"message": ""}, {"message": " "}, {"message": "x" * 2001},
-                    {"message": "Hi", "applicant_id": str(uuid4())}):
+    for payload in (
+        {"message": ""},
+        {"message": " "},
+        {"message": "x" * 2001},
+        {"message": "Hi", "applicant_id": str(uuid4())},
+    ):
         assert http.post(f"{URL}/projects/{env[4]}", json=payload).status_code == 422
     for query in ("scope=all", "page=0", "page_size=101", "page_size=0"):
         assert http.get(f"{URL}?{query}").status_code == 422
@@ -178,7 +198,7 @@ def test_rollback_on_port_failure(env):
 
 def test_unconfigured_port_fails_closed(env):
     as_user(env)
-    env[1].dependency_overrides.pop(get_collaboration_actions)
+    env[1].dependency_overrides[get_collaboration_actions] = lambda: UnconfiguredActions()
     assert submit(env).status_code == 503
     with Session(env[2]) as db:
         assert db.scalar(select(func.count()).select_from(Application)) == 0
@@ -210,8 +230,9 @@ def test_concurrent_submissions_and_decisions(env):
         with Session(engine) as db:
             barrier.wait(timeout=5)
             try:
-                item = submit_application(project_id, ApplicationCreate(message="Hello"),
-                                          people[1], db, Actions())
+                item = submit_application(
+                    project_id, ApplicationCreate(message="Hello"), people[1], db, Actions()
+                )
                 return 201, item.id
             except HTTPException as error:
                 return error.status_code, None
@@ -226,8 +247,9 @@ def test_concurrent_submissions_and_decisions(env):
         with Session(engine) as db:
             barrier.wait(timeout=5)
             try:
-                decide_application(application_id, ApplicationDecision(status=status),
-                                   people[0], db, Actions())
+                decide_application(
+                    application_id, ApplicationDecision(status=status), people[0], db, Actions()
+                )
                 return 200
             except HTTPException as error:
                 return error.status_code
@@ -272,8 +294,9 @@ def test_submission_observes_concurrent_project_update(env):
             with Session(engine) as db:
                 started.set()
                 try:
-                    submit_application(project_id, ApplicationCreate(message="Hello"),
-                                       people[1], db, Actions())
+                    submit_application(
+                        project_id, ApplicationCreate(message="Hello"), people[1], db, Actions()
+                    )
                     return 201
                 except HTTPException as error:
                     return error.status_code

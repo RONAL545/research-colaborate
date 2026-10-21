@@ -1,4 +1,5 @@
 """Transactional ports: implementations must flush but never commit the caller's session."""
+
 from dataclasses import dataclass
 from typing import Protocol
 from uuid import UUID
@@ -36,4 +37,6 @@ class UnconfiguredActions:
 
 
 def get_collaboration_actions() -> CollaborationActions:
-    return UnconfiguredActions()
+    from app.integrations.collaboration import TransactionalCollaborationActions
+
+    return TransactionalCollaborationActions()

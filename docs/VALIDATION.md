@@ -82,3 +82,44 @@ Coordinador desde backend:
 Resultado: **63 passed**, DB PostgreSQL nueva vacía, incluye ciclo Alembic completo.
 Ruff global con configuración explícita y diff check aprobados. Los dos avisos previos
 persisten. Chat todavía no abre conversaciones desde solicitudes hasta conectar puertos.
+
+## Segunda etapa: solicitudes y recorrido completo
+
+Entregas de agentes (sin merge ni publicación por ellos):
+- solicitudes d4daccaa: suite de rama reportada 62 passed;
+- notificaciones c8ff25b: suite de rama reportada 56 passed;
+- chat 59c7594: suite de rama reportada 58 passed.
+El coordinador revisó los diffs y ejecutó suites completas durante cada integración.
+Los resultados de agentes son evidencia adicional, no sustituyen estas ejecuciones.
+
+Solicitudes se integró después de notificaciones y chat. Revisión merge 0012 conserva
+las ramas Alembic, 0013 añade FK application_id en ambas tablas. El adaptador real
+abre conversación/notifica al crear y notifica al decidir, usando la misma sesión,
+sin commits intermedios. Se actualizaron seeds de pruebas para persistir solicitudes
+reales y respetar las nuevas FK; el test del adaptador provisional lo inyecta
+explícitamente ahora que el predeterminado es el real.
+
+Coordinador, desde backend:
+`DATABASE_URL=postgresql+psycopg://mvp:mvp@localhost:55432/coordinator_collaboration_test ../.venv/bin/pytest -q -x`
+Resultado inicial: **78 passed**. Incluye JWT real, verificación, publicación,
+solicitud, decisión, conversación, Admin ajeno sin acceso y rollback de efectos reales.
+
+Se añadió prueba con peticiones HTTP y conexiones independientes para creación y
+decisión concurrentes usando los adaptadores reales (sin fakes de identidad ni puertos).
+Su primera ejecución completa falló por limpieza del test: faltaba borrar los tokens
+de verificación antes de borrar sus usuarios (1 fallo y 15 errores posteriores por
+datos que no se limpiaron). No fue un fallo de atomicidad de producción. Se corrigió
+la limpieza en orden de FK y se repitió desde otra base vacía:
+
+`DATABASE_URL=postgresql+psycopg://mvp:mvp@localhost:55432/coordinator_collaboration_final_test ../.venv/bin/pytest -q -x --tb=short`
+Resultado final: **79 passed**, PostgreSQL 16, **11.18 s**. Incluye todas las pruebas,
+concurrencia real y upgrade/check/downgrade/upgrade del grafo completo. Se comprobó
+que las carreras generan una sola conversación y un único aviso por evento.
+`.venv/bin/ruff check --config backend/pyproject.toml backend` y `git diff --check`: aprobados.
+Un agente hizo revisión adicional de solo lectura del wiring: sin hallazgos concretos;
+no se atribuyen ejecuciones adicionales a esa revisión.
+
+CI de las integraciones previas: notificaciones 39546291056 y chat 39546328111, ambas
+success observadas. Las dos advertencias de dependencias/caso negativo JWT persisten.
+No se probó envío real de correo, UI, notificaciones push ni WebSocket: correo e interfaz
+siguen pendientes y mensajería se sirve por consulta periódica según el MVP.

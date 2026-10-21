@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.main import create_app
+from app.modules.applications.models import Application
 from app.modules.auth.models import User
 from app.modules.chat.models import Conversation, Message
 from app.modules.chat.service import open_conversation
@@ -30,14 +31,41 @@ def setup():
     ids = [uuid4() for _ in range(3)]
     project_id = uuid4()
     with Session(engine) as db:
-        db.add_all([User(id=id, email=f"{id}@chat.test", name="Test", university="U",
-                         career="C", password_hash="unused", email_verified=True) for id in ids])
+        db.add_all(
+            [
+                User(
+                    id=id,
+                    email=f"{id}@chat.test",
+                    name="Test",
+                    university="U",
+                    career="C",
+                    password_hash="unused",
+                    email_verified=True,
+                )
+                for id in ids
+            ]
+        )
         db.flush()
-        db.add(Project(id=project_id, author_id=ids[0], university="U", title="T",
-                       description="D", category="C", required_roles=["QA"], status="recruiting"))
+        db.add(
+            Project(
+                id=project_id,
+                author_id=ids[0],
+                university="U",
+                title="T",
+                description="D",
+                category="C",
+                required_roles=["QA"],
+                status="recruiting",
+            )
+        )
         db.flush()
-        conversation = open_conversation(db, application_id=uuid4(), project_id=project_id,
-                                         author_id=ids[0], applicant_id=ids[1])
+        conversation = open_conversation(
+            db,
+            application_id=application(db, project_id, ids[1]),
+            project_id=project_id,
+            author_id=ids[0],
+            applicant_id=ids[1],
+        )
         cid = conversation.id
         db.commit()
     app = create_app()
@@ -53,10 +81,20 @@ def setup():
     with Session(engine) as db:
         db.execute(delete(Message))
         db.execute(delete(Conversation))
+        db.execute(delete(Application).where(Application.project_id == project_id))
         db.execute(delete(Project).where(Project.id == project_id))
         db.execute(delete(User).where(User.id.in_(ids)))
         db.commit()
     engine.dispose()
+
+
+def application(db, project_id, applicant_id):
+    item = Application(
+        project_id=project_id, applicant_id=applicant_id, message="Seed", status="rejected"
+    )
+    db.add(item)
+    db.flush()
+    return item.id
 
 
 def identity(app, id, verified=True, role=Role.student):
@@ -80,7 +118,9 @@ def test_privacy_and_identity(setup):
     assert http.get(endpoint).status_code == 200
     assert http.post(endpoint, json={"content": "Hello"}).status_code == 403
     identity(app, ids[0])
-    assert http.post(endpoint, json={"content": "Hello", "sender_id": str(ids[1])}).status_code == 422
+    assert (
+        http.post(endpoint, json={"content": "Hello", "sender_id": str(ids[1])}).status_code == 422
+    )
     response = http.post(endpoint, json={"content": " Hello "})
     assert response.status_code == 201
     assert response.json()["sender_id"] == str(ids[0])
@@ -107,9 +147,16 @@ def test_pagination_and_ties(setup):
     with Session(engine) as db:
         db.execute(update(Message).values(created_at=datetime(2026, 1, 1, tzinfo=timezone.utc)))
         for _ in range(2):
-            open_conversation(db, application_id=uuid4(), project_id=project_id,
-                              author_id=ids[0], applicant_id=ids[1])
-        db.execute(update(Conversation).values(created_at=datetime(2026, 1, 1, tzinfo=timezone.utc)))
+            open_conversation(
+                db,
+                application_id=application(db, project_id, ids[1]),
+                project_id=project_id,
+                author_id=ids[0],
+                applicant_id=ids[1],
+            )
+        db.execute(
+            update(Conversation).values(created_at=datetime(2026, 1, 1, tzinfo=timezone.utc))
+        )
         db.commit()
     for path, reverse in [(endpoint, False), (URL, True)]:
         items = http.get(path).json()["items"]
@@ -122,9 +169,12 @@ def test_pagination_and_ties(setup):
 
 def test_idempotence_context_and_external_rollback(setup):
     _, _, engine, ids, _, project_id = setup
-    application_id = uuid4()
-    args = dict(application_id=application_id, project_id=project_id,
-                author_id=ids[0], applicant_id=ids[1])
+    with Session(engine) as db:
+        application_id = application(db, project_id, ids[1])
+        db.commit()
+    args = dict(
+        application_id=application_id, project_id=project_id, author_id=ids[0], applicant_id=ids[1]
+    )
     with Session(engine) as db:
         first = open_conversation(db, **args)
         assert open_conversation(db, **args).id == first.id
@@ -134,7 +184,10 @@ def test_idempotence_context_and_external_rollback(setup):
             open_conversation(db, **{**args, "applicant_id": ids[0]})
         db.rollback()
     with Session(engine) as db:
-        assert db.scalar(select(Conversation).where(Conversation.application_id == application_id)) is None
+        assert (
+            db.scalar(select(Conversation).where(Conversation.application_id == application_id))
+            is None
+        )
 
 
 def test_concurrent_open_uses_savepoint(setup):
@@ -144,7 +197,9 @@ def test_concurrent_open_uses_savepoint(setup):
     from sqlalchemy import event, func
 
     _, _, engine, ids, _, project_id = setup
-    application_id = uuid4()
+    with Session(engine) as db:
+        application_id = application(db, project_id, ids[1])
+        db.commit()
     barrier = Barrier(2)
 
     def before_insert(mapper, connection, target):
@@ -156,8 +211,11 @@ def test_concurrent_open_uses_savepoint(setup):
     def create():
         with Session(engine) as db:
             conversation = open_conversation(
-                db, application_id=application_id, project_id=project_id,
-                author_id=ids[0], applicant_id=ids[1],
+                db,
+                application_id=application_id,
+                project_id=project_id,
+                author_id=ids[0],
+                applicant_id=ids[1],
             )
             result = conversation.id
             # A duplicate insert must leave the outer transaction usable.

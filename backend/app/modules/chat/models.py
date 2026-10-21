@@ -16,7 +16,9 @@ class Conversation(Base):
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    application_id: Mapped[UUID] = mapped_column(unique=True)
+    application_id: Mapped[UUID] = mapped_column(
+        ForeignKey("applications.id", name="fk_conversations_application"), unique=True
+    )
     project_id: Mapped[UUID] = mapped_column(ForeignKey("projects.id"))
     author_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"))
     applicant_id: Mapped[UUID] = mapped_column(ForeignKey("users.id"))
