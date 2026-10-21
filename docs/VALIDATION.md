@@ -58,3 +58,16 @@ Persisten las dos advertencias documentadas de dependencias/caso negativo JWT.
 CI auth+proyectos f6cd977: success (GitHub Actions 39545283162).
 No se declara completo el MVP: faltan proveedor de correo, solicitudes, chat,
 notificaciones e interfaz.
+
+## Segunda etapa: contratos y notificaciones
+
+Contratos compartidos 2c83c40: suite existente reejecutada contra base nueva
+collaboration_contracts_test: **51 passed**; Ruff y diff check aprobados. CI del
+merge 6c028ad: success (39546049425). Tres agentes iniciados en worktrees aislados.
+
+Notificaciones recibidas en c8ff25b. Revisados permisos, idempotencia y savepoints.
+Coordinador, desde backend:
+`DATABASE_URL=postgresql+psycopg://mvp:mvp@localhost:55432/coordinator_notifications_test ../.venv/bin/pytest -q`
+Resultado: **56 passed**, PostgreSQL nuevo desechable. Incluye concurrencia real del
+servicio y ciclo Alembic. Ruff global con configuración explícita y diff check aprobados.
+Aún sin conexión a solicitudes hasta recibir el módulo. Advertencias previas persisten.
