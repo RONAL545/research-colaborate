@@ -1,10 +1,11 @@
 import pytest
+from fastapi.testclient import TestClient
+from pydantic import ValidationError
+
 from app.core.config import Settings
 from app.core.dependencies import get_current_user
 from app.main import create_app
 from app.schemas.projects import ProjectCreate
-from fastapi.testclient import TestClient
-from pydantic import ValidationError
 
 
 def test_health_and_openapi():

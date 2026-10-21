@@ -1,8 +1,9 @@
 from alembic import context
+from sqlalchemy import create_engine, pool
+
 from app.core.config import get_settings
 from app.core.database import Base
 from app.models import load_models
-from sqlalchemy import create_engine, pool
 
 load_models()
 target_metadata = Base.metadata
