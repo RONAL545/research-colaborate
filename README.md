@@ -12,6 +12,11 @@ cd backend
 ../.venv/bin/uvicorn app.main:app --reload
 ```
 
+Módulos implementados: autenticación y perfil, proyectos/feed y directorio de eventos.
+Validación del coordinador en [docs/VALIDATION.md](docs/VALIDATION.md). Las pruebas
+integradas usan JWT real; el correo real sigue pendiente de proveedor. Solicitudes,
+chat, notificaciones e interfaz aún no están implementados.
+
 Swagger: http://localhost:8000/docs; salud: /health (proceso, no disponibilidad DB). Configuración por variables de entorno o .env en raíz. Cambiar JWT_SECRET fuera de desarrollo. INSTITUTIONAL_DOMAINS es una lista JSON. No hay envío real de correo en bootstrap. No versionar secretos.
 
 Pruebas (DATABASE_URL debe apuntar a una base **desechable**, el test de migraciones ejecuta downgrade):

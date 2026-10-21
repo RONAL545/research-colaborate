@@ -98,3 +98,37 @@ def test_database_rejects_project_without_existing_author(integrated):
             )
         )
         session.flush()
+
+
+def test_real_admin_verification_events_and_role_revocation(integrated):
+    from uuid import UUID
+
+    from app.modules.auth.models import User
+
+    client, session, mailbox = integrated
+    account, headers, token = student(client, mailbox, "admin@unaj.edu.pe")
+    data = dict(
+        title="Congress",
+        category="congreso",
+        deadline="2027-01-10T12:00:00Z",
+        url="https://unaj.edu.pe/congreso",
+        university="UNAJ",
+    )
+    assert client.post("/api/v1/events", json=data).status_code == 401
+    assert client.post("/api/v1/events", headers=headers, json=data).status_code == 403
+    user = session.get(User, UUID(account["id"]))
+    user.role = "admin"  # Trusted seed operation, never exposed as an API privilege change.
+    session.commit()
+    assert client.post("/api/v1/events", headers=headers, json=data).status_code == 403
+    assert client.post("/api/v1/auth/verify", json={"token": token}).status_code == 200
+    created = client.post("/api/v1/events", headers=headers, json=data)
+    assert created.status_code == 201
+    endpoint = f"/api/v1/events/{created.json()['id']}"
+    updated = client.put(endpoint, headers=headers, json=data | {"title": "Updated Congress"})
+    assert updated.status_code == 200
+    assert client.get(endpoint).json()["title"] == "Updated Congress"
+    assert client.get("/api/v1/events").json()["total"] == 1
+    user.role = "student"
+    session.commit()
+    assert client.put(endpoint, headers=headers, json=data).status_code == 403
+    assert client.post("/api/v1/events", headers=headers, json=data).status_code == 403
