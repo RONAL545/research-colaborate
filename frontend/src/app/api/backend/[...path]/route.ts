@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isSameOrigin } from "@/lib/server-origin";
 const resources = new Set([
   "auth",
   "projects",
@@ -24,13 +25,10 @@ async function proxy(
     )
   )
     return NextResponse.json({ detail: "Not found" }, { status: 404 });
-  if (!["GET", "HEAD"].includes(request.method)) {
-    const origin = request.headers.get("origin");
-    if (origin && origin !== request.nextUrl.origin)
-      return NextResponse.json({ detail: "Invalid origin" }, { status: 403 });
-    if (request.headers.get("sec-fetch-site") === "cross-site")
-      return NextResponse.json({ detail: "Invalid origin" }, { status: 403 });
+  if (!["GET", "HEAD"].includes(request.method) && !isSameOrigin(request)) {
+    return NextResponse.json({ detail: "Invalid origin" }, { status: 403 });
   }
+
   const base = (process.env.BACKEND_URL ?? "http://127.0.0.1:8000").replace(
     /\/$/,
     "",

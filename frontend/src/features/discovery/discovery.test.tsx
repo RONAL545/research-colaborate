@@ -4,23 +4,218 @@ import { Feed } from "./feed";
 import { ProjectDetail, ProjectEditor } from "./project";
 import { EventEditor, EventsDirectory } from "./events";
 import { ApiError } from "@/lib/api";
-const mocks=vi.hoisted(()=>({remote:vi.fn(),session:vi.fn(),post:vi.fn(),push:vi.fn(),reload:vi.fn()}));
-vi.mock("@/lib/use-remote",()=>({useRemote:mocks.remote}));
-vi.mock("@/lib/session",()=>({useSession:mocks.session}));
-vi.mock("next/navigation",()=>({useRouter:()=>({push:mocks.push})}));
-vi.mock("@/lib/api",async(importOriginal)=>({...await importOriginal<typeof import("@/lib/api")>(),api:{post:mocks.post}}));
-const project={id:"p1",author_id:"author",title:"Investigar juntos",description:"Una idea real",university:"Universidad",category:"IA",skills:["Python"],required_roles:["Investigador"],status:"recruiting"};
-beforeEach(()=>{vi.clearAllMocks();mocks.session.mockReturnValue({user:null,loading:false});mocks.remote.mockReturnValue({data:{items:[],total:0},loading:false,error:null,reload:mocks.reload});});
-describe("Descubrimiento",()=>{
- it("combina filtros y reinicia la página",()=>{render(<Feed/>);fireEvent.change(screen.getByLabelText("Buscar proyectos"),{target:{value:"sensores"}});fireEvent.change(screen.getByLabelText("Universidad"),{target:{value:"UNI"}});fireEvent.change(screen.getByLabelText("Categoría"),{target:{value:"IA"}});fireEvent.change(screen.getByLabelText("Estado"),{target:{value:"recruiting"}});fireEvent.click(screen.getByRole("button",{name:"Buscar"}));expect(mocks.remote).toHaveBeenLastCalledWith("/projects?q=sensores&university=UNI&category=IA&status=recruiting&page=1&page_size=12");});
- it("pagina sobre los mismos filtros",()=>{mocks.remote.mockReturnValue({data:{items:[project],total:25},loading:false});render(<Feed/>);fireEvent.click(screen.getByRole("button",{name:"Página siguiente"}));expect(mocks.remote).toHaveBeenLastCalledWith("/projects?page=2&page_size=12");});
- it("muestra error y reintenta sin inventar tarjetas",()=>{mocks.remote.mockReturnValue({error:new ApiError(500,"Servicio no disponible"),loading:false,reload:mocks.reload});render(<Feed/>);expect(screen.getByText("Servicio no disponible")).toBeVisible();fireEvent.click(screen.getByRole("button",{name:"Reintentar"}));expect(mocks.reload).toHaveBeenCalledOnce();});
- it("solo ofrece editar al autor verificado",()=>{mocks.remote.mockReturnValue({data:project,loading:false});mocks.session.mockReturnValue({user:{id:"other",email_verified:true}});const view=render(<ProjectDetail id="p1"/>);expect(screen.queryByText("Editar proyecto")).not.toBeInTheDocument();mocks.session.mockReturnValue({user:{id:"author",email_verified:true}});view.rerender(<ProjectDetail id="p1"/>);expect(screen.getByText("Editar proyecto")).toHaveAttribute("href","/proyectos/p1/editar");expect(screen.queryByLabelText("¿Cómo te gustaría aportar?")).not.toBeInTheDocument();});
- it("impide editar a otro usuario",()=>{mocks.remote.mockReturnValue({data:project,loading:false});mocks.session.mockReturnValue({user:{id:"other",email_verified:true}});render(<ProjectEditor id="p1"/>);expect(screen.getByText("Solo el autor puede editar este proyecto")).toBeVisible();expect(screen.queryByLabelText("Título")).not.toBeInTheDocument();});
- it("envía una solicitud real y enlaza su conversación",async()=>{mocks.remote.mockReturnValue({data:project,loading:false});mocks.session.mockReturnValue({user:{id:"other",email_verified:true}});mocks.post.mockResolvedValue({id:"application1"});render(<ProjectDetail id="p1"/>);fireEvent.change(screen.getByLabelText("¿Cómo te gustaría aportar?"),{target:{value:"Puedo investigar"}});fireEvent.click(screen.getByRole("button",{name:"Solicitar unirme al equipo"}));await waitFor(()=>expect(screen.getByText("Conversar con el creador →")).toHaveAttribute("href","/conversaciones?application=application1"));expect(mocks.post).toHaveBeenCalledWith("/applications/projects/p1",{message:"Puedo investigar"});});
- it("explica duplicados sin afirmar éxito",async()=>{mocks.remote.mockReturnValue({data:project,loading:false});mocks.session.mockReturnValue({user:{id:"other",email_verified:true}});mocks.post.mockRejectedValue(new ApiError(409,"Duplicado"));render(<ProjectDetail id="p1"/>);fireEvent.change(screen.getByLabelText("¿Cómo te gustaría aportar?"),{target:{value:"Me interesa"}});fireEvent.click(screen.getByRole("button",{name:"Solicitar unirme al equipo"}));await waitFor(()=>expect(screen.getByRole("alert")).toHaveTextContent("Ya existe una solicitud"));expect(screen.queryByText("Tu solicitud fue enviada.")).not.toBeInTheDocument();});
- it("exige verificación para participar",()=>{mocks.session.mockReturnValue({user:{id:"student",email_verified:false}});render(<ProjectEditor/>);expect(screen.getByText("Verifica tu correo para participar")).toBeVisible();expect(screen.queryByLabelText("Título")).not.toBeInTheDocument();});
- it("publica usando el usuario del servidor sin aceptar autor ni universidad",async()=>{mocks.session.mockReturnValue({user:{id:"student",email_verified:true}});mocks.remote.mockReturnValue({data:null,loading:false});mocks.post.mockResolvedValue({id:"new-project"});render(<ProjectEditor/>);fireEvent.change(screen.getByLabelText("Título"),{target:{value:"Proyecto nuevo"}});fireEvent.change(screen.getByLabelText("Resumen e hipótesis"),{target:{value:"Una hipótesis"}});fireEvent.change(screen.getByLabelText("Categoría"),{target:{value:"IA"}});fireEvent.change(screen.getByLabelText("Roles buscados (separados por comas)"),{target:{value:" Backend, Diseño "}});fireEvent.click(screen.getByRole("button",{name:"Publicar proyecto"}));await waitFor(()=>expect(mocks.push).toHaveBeenCalledWith("/proyectos/new-project"));expect(mocks.post).toHaveBeenCalledWith("/projects",{title:"Proyecto nuevo",description:"Una hipótesis",category:"IA",skills:[],required_roles:["Backend","Diseño"],status:"idea"});});
- it("restringe administración de eventos",()=>{mocks.session.mockReturnValue({user:{id:"student",email_verified:true,role:"student"}});render(<EventEditor/>);expect(screen.getByText("Esta sección es para administradores")).toBeVisible();});
- it("publica el acceso al formulario solo para admin verificado",()=>{mocks.session.mockReturnValue({user:{id:"admin",email_verified:true,role:"admin"}});render(<EventsDirectory/>);expect(screen.getByText("Publicar evento")).toHaveAttribute("href","/eventos/nuevo");});
+const mocks = vi.hoisted(() => ({
+  remote: vi.fn(),
+  session: vi.fn(),
+  post: vi.fn(),
+  push: vi.fn(),
+  reload: vi.fn(),
+}));
+vi.mock("@/lib/use-remote", () => ({ useRemote: mocks.remote }));
+vi.mock("@/lib/session", () => ({ useSession: mocks.session }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: mocks.push }) }));
+vi.mock("@/lib/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/api")>()),
+  api: { post: mocks.post },
+}));
+const project = {
+  id: "p1",
+  author_id: "author",
+  title: "Investigar juntos",
+  description: "Una idea real",
+  university: "Universidad",
+  category: "IA",
+  skills: ["Python"],
+  required_roles: ["Investigador"],
+  status: "recruiting",
+};
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.session.mockReturnValue({ user: null, loading: false });
+  mocks.remote.mockReturnValue({
+    data: { items: [], total: 0 },
+    loading: false,
+    error: null,
+    reload: mocks.reload,
+  });
+});
+describe("Descubrimiento", () => {
+  it("combina filtros y reinicia la página", () => {
+    render(<Feed />);
+    fireEvent.change(screen.getByLabelText("Buscar proyectos"), {
+      target: { value: "sensores" },
+    });
+    fireEvent.change(screen.getByLabelText("Universidad"), {
+      target: { value: "UNI" },
+    });
+    fireEvent.change(screen.getByLabelText("Categoría"), {
+      target: { value: "IA" },
+    });
+    fireEvent.change(screen.getByLabelText("Estado"), {
+      target: { value: "recruiting" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Buscar" }));
+    expect(mocks.remote).toHaveBeenLastCalledWith(
+      "/projects?q=sensores&university=UNI&category=IA&status=recruiting&page=1&page_size=12",
+    );
+  });
+  it("pagina sobre los mismos filtros", () => {
+    mocks.remote.mockReturnValue({
+      data: { items: [project], total: 25 },
+      loading: false,
+    });
+    render(<Feed />);
+    fireEvent.click(screen.getByRole("button", { name: "Página siguiente" }));
+    expect(mocks.remote).toHaveBeenLastCalledWith(
+      "/projects?page=2&page_size=12",
+    );
+  });
+  it("muestra error y reintenta sin inventar tarjetas", () => {
+    mocks.remote.mockReturnValue({
+      error: new ApiError(500, "Servicio no disponible"),
+      loading: false,
+      reload: mocks.reload,
+    });
+    render(<Feed />);
+    expect(screen.getByText("Servicio no disponible")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    expect(mocks.reload).toHaveBeenCalledOnce();
+  });
+  it("solo ofrece editar al autor verificado", () => {
+    mocks.remote.mockReturnValue({ data: project, loading: false });
+    mocks.session.mockReturnValue({
+      user: { id: "other", email_verified: true },
+    });
+    const view = render(<ProjectDetail id="p1" />);
+    expect(screen.queryByText("Editar proyecto")).not.toBeInTheDocument();
+    mocks.session.mockReturnValue({
+      user: { id: "author", email_verified: true },
+    });
+    view.rerender(<ProjectDetail id="p1" />);
+    expect(screen.getByText("Editar proyecto")).toHaveAttribute(
+      "href",
+      "/proyectos/p1/editar",
+    );
+    expect(
+      screen.queryByLabelText("¿Cómo te gustaría aportar?"),
+    ).not.toBeInTheDocument();
+  });
+  it("impide editar a otro usuario", () => {
+    mocks.remote.mockReturnValue({ data: project, loading: false });
+    mocks.session.mockReturnValue({
+      user: { id: "other", email_verified: true },
+    });
+    render(<ProjectEditor id="p1" />);
+    expect(
+      screen.getByText("Solo el autor puede editar este proyecto"),
+    ).toBeVisible();
+    expect(screen.queryByLabelText("Título")).not.toBeInTheDocument();
+  });
+  it("envía una solicitud real y enlaza su conversación", async () => {
+    mocks.remote.mockReturnValue({ data: project, loading: false });
+    mocks.session.mockReturnValue({
+      user: { id: "other", email_verified: true },
+    });
+    mocks.post.mockResolvedValue({ id: "application1" });
+    render(<ProjectDetail id="p1" />);
+    fireEvent.change(screen.getByLabelText("¿Cómo te gustaría aportar?"), {
+      target: { value: "Puedo investigar" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Solicitar unirme al equipo" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByText("Conversar con el creador →")).toHaveAttribute(
+        "href",
+        "/conversaciones?application=application1",
+      ),
+    );
+    expect(mocks.post).toHaveBeenCalledWith("/applications/projects/p1", {
+      message: "Puedo investigar",
+    });
+  });
+  it("explica duplicados sin afirmar éxito", async () => {
+    mocks.remote.mockReturnValue({ data: project, loading: false });
+    mocks.session.mockReturnValue({
+      user: { id: "other", email_verified: true },
+    });
+    mocks.post.mockRejectedValue(new ApiError(409, "Duplicado"));
+    render(<ProjectDetail id="p1" />);
+    fireEvent.change(screen.getByLabelText("¿Cómo te gustaría aportar?"), {
+      target: { value: "Me interesa" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Solicitar unirme al equipo" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Ya existe una solicitud",
+      ),
+    );
+    expect(
+      screen.queryByText("Tu solicitud fue enviada."),
+    ).not.toBeInTheDocument();
+  });
+  it("exige verificación para participar", () => {
+    mocks.session.mockReturnValue({
+      user: { id: "student", email_verified: false },
+    });
+    render(<ProjectEditor />);
+    expect(
+      screen.getByText("Verifica tu correo para participar"),
+    ).toBeVisible();
+    expect(screen.queryByLabelText("Título")).not.toBeInTheDocument();
+  });
+  it("publica usando el usuario del servidor sin aceptar autor ni universidad", async () => {
+    mocks.session.mockReturnValue({
+      user: { id: "student", email_verified: true },
+    });
+    mocks.remote.mockReturnValue({ data: null, loading: false });
+    mocks.post.mockResolvedValue({ id: "new-project" });
+    render(<ProjectEditor />);
+    fireEvent.change(screen.getByLabelText("Título"), {
+      target: { value: "Proyecto nuevo" },
+    });
+    fireEvent.change(screen.getByLabelText("Resumen e hipótesis"), {
+      target: { value: "Una hipótesis" },
+    });
+    fireEvent.change(screen.getByLabelText("Categoría"), {
+      target: { value: "IA" },
+    });
+    fireEvent.change(
+      screen.getByLabelText("Roles buscados (separados por comas)"),
+      { target: { value: " Backend, Diseño " } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Publicar proyecto" }));
+    await waitFor(() =>
+      expect(mocks.push).toHaveBeenCalledWith("/proyectos/new-project"),
+    );
+    expect(mocks.post).toHaveBeenCalledWith("/projects", {
+      title: "Proyecto nuevo",
+      description: "Una hipótesis",
+      category: "IA",
+      skills: [],
+      required_roles: ["Backend", "Diseño"],
+      status: "idea",
+    });
+  });
+  it("restringe administración de eventos", () => {
+    mocks.session.mockReturnValue({
+      user: { id: "student", email_verified: true, role: "student" },
+    });
+    render(<EventEditor />);
+    expect(
+      screen.getByText("Esta sección es para administradores"),
+    ).toBeVisible();
+  });
+  it("publica el acceso al formulario solo para admin verificado", () => {
+    mocks.session.mockReturnValue({
+      user: { id: "admin", email_verified: true, role: "admin" },
+    });
+    render(<EventsDirectory />);
+    expect(screen.getByText("Publicar evento")).toHaveAttribute(
+      "href",
+      "/eventos/nuevo",
+    );
+  });
 });

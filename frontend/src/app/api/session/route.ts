@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isSameOrigin } from "@/lib/server-origin";
 export async function DELETE(request: NextRequest) {
-  const origin = request.headers.get("origin");
-  if (
-    (origin && origin !== request.nextUrl.origin) ||
-    request.headers.get("sec-fetch-site") === "cross-site"
-  )
+  if (!isSameOrigin(request))
     return NextResponse.json({ detail: "Invalid origin" }, { status: 403 });
   const response = NextResponse.json({ authenticated: false });
   response.cookies.delete("nexo_session");

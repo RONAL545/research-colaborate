@@ -125,7 +125,7 @@ Then el sistema rechaza la operación
 5. Construir la interfaz y conectar el recorrido completo.
 6. Incorporar directorio de eventos y validar el MVP integrado.
 
-La elección entre Flutter y React/Next.js sigue pendiente: las instrucciones permiten ambas opciones y esta carpeta no contiene una implementación existente.
+El cliente inicial se implementó como interfaz web con React/Next.js en `frontend/`, adaptable a móvil y escritorio. Flutter queda fuera de esta primera entrega.
 
 ## Condiciones para considerar listo el MVP
 

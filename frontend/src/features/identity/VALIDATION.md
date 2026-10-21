@@ -3,6 +3,7 @@
 Rama: feature/ui-identity. Base compartida: dev de interfaz.
 
 Implementación en src/features/identity y app/login, registro, verificar, perfil:
+
 - Login con sesión HTTP-only compartida y next restringido a rutas locales.
 - Registro institucional sin aceptar rol, IDs ni estado de verificación.
 - Enlace de verificación con confirmación explícita; éxito solo tras HTTP satisfactorio.
@@ -10,6 +11,7 @@ Implementación en src/features/identity y app/login, registro, verificar, perfi
 - Perfil propio, límites DTO, habilidades por comas (máximo 30) y refresh automático de sesión.
 
 Comandos ejecutados en frontend/:
+
 - `npm ci`: aprobado, 131 paquetes, auditoría sin vulnerabilidades.
 - `npm test`: aprobado, 18 tests (11 de identidad y 7 compartidos), tres archivos.
 - `npm run typecheck`: aprobado, tsc --noEmit sin errores.
