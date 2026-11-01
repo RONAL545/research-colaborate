@@ -76,3 +76,10 @@ No declarar aprobadas pruebas o CI remota que no se hayan ejecutado y observado.
 La tercera etapa de interfaz se reparte entre feature/ui-identity (.worktrees/ui-identity),
 feature/ui-discovery (.worktrees/ui-discovery) y feature/ui-collaboration
 (.worktrees/ui-collaboration). Responsabilidades en AGENTS.md y docs/agents/ui-*.md.
+
+## Presentación a universidades
+
+Abrir `/universidades` en la interfaz local: propuesta de valor, recorrido del producto,
+piloto de ocho semanas y preguntas frecuentes. El [kit de presentación](docs/startup/PRESENTACION.md)
+incluye pitch de 60 segundos, guion de demo, hipótesis de negocio y métricas propuestas.
+Se distingue el MVP demostrable de las condiciones pendientes para un piloto real.

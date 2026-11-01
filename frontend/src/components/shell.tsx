@@ -5,6 +5,7 @@ import {
   Bell,
   CalendarDays,
   Compass,
+  GraduationCap,
   LogOut,
   Menu,
   MessageCircle,
@@ -20,6 +21,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { SessionProvider, useSession } from "@/lib/session";
 import { Button } from "./ui";
 const links = [
+  { href: "/universidades", label: "Para universidades", icon: GraduationCap },
   { href: "/", label: "Explorar proyectos", icon: Compass },
   { href: "/eventos", label: "Eventos y convocatorias", icon: CalendarDays },
   { href: "/solicitudes", label: "Mis solicitudes", icon: UsersRound },
