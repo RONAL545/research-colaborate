@@ -13,3 +13,8 @@ playwright-report/
 test-results/
 *.tsbuildinfo
 .env.local
+
+# Local trial identities and deployment credentials
+/estudiantes.csv
+/responsable.csv
+.vercel/
